@@ -1,21 +1,19 @@
-// app/api/bookings/route.js
+// bookings/route.js
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 
-
 export async function POST(request) {
   try {
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
+    console.log('🚀 BOOKING API HIT - POST received');
 
     await dbConnect();
 
     const body = await request.json();
+    console.log('Request body:', body);
+
     const {
+      userId,
       name,
       email,
       phone,
@@ -24,15 +22,14 @@ export async function POST(request) {
       arrivalTime,
       duration,
       totalAmount,
-      userId // We'll add this from frontend
     } = body;
 
-    if (!name || !email || !session || !date || !duration) {
+    if (!name || !email || !session || !date || !duration || !totalAmount) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const newBooking = new Booking({
-      userId: userId || 'anonymous', // fallback if not sent
+      userId: userId || 'unknown',
       name,
       email,
       phone: phone || '',
@@ -45,14 +42,15 @@ export async function POST(request) {
 
     await newBooking.save();
 
+    console.log('Booking saved:', newBooking._id);
+
     return NextResponse.json({
       message: 'Booking saved successfully!',
       bookingId: newBooking._id
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Booking save error:', error);
-    console.log('API hit! Body:', await request.clone().json());
+    console.error('Booking API error:', error);
     return NextResponse.json({
       error: 'Failed to save booking',
       details: error.message
